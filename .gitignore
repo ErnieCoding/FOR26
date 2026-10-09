@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.egg-info/
+MUJOCO_LOG.TXT
+# colcon build output
+build/
+install/
+log/
+Assignment3/Simulate/scripts/camera_*.png
+# Complete versions of the student exercises: kept locally by the course staff, not published
+Solutions/

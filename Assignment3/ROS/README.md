@@ -16,15 +16,17 @@ Do the [Setup guide](../Setup/README.md) and the [Simulation lab](../Simulate/RE
 | 2 | [Build and run](02_build_and_run.md) | Build the workspace, start the simulator node, and inspect it with the `ros2` tools |
 | 3 | [Your first nodes](03_your_first_nodes.md) | **Exercise:** write a leader (publisher) and a follower (subscriber) |
 | 4 | [Teleoperation in simulation](04_teleop_in_sim.md) | Move the simulated arm with the real leader arm |
+| 5 | [Launch files](05_launch_files.md) | Start several nodes with one command |
 
 ## What is in the workspace
 
-The ROS code is in `~/FOR26/ros_ws/src`, in two packages.
+The ROS code is in `~/FOR26/ros_ws/src`, in three packages.
 
 | Package | Who writes it | Contents |
 | --- | --- | --- |
-| `lekiwi_ros` | provided | `sim_node` (the simulator as a ROS node) and `leader_node` (reads the real leader arm) |
+| `lekiwi_ros` | provided | `sim_node` (the simulator as a ROS node), `leader_node` (reads the real leader arm) and `robot_node` (the real robot) |
 | `hello_ros` | **you** | `leader` and `follower`, your first two nodes, with gaps for you to fill in |
+| `arm_control` | **you** | forward kinematics, inverse kinematics and keyboard typing, for the [Kinematics guide](../Kinematics/README.md) |
 
 Your TA has complete versions of your two nodes. Try first, ask later.
 

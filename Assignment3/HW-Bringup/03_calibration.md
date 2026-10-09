@@ -31,7 +31,7 @@ conda activate ros_mujoco
 ```
 
 ```bash
-python ~/FOR26/Assignment3/HW-Bringup/scripts/recover_calibration.py /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B8E116010-if00
+python ~/FOR26/Assignment3/HW-Bringup/scripts/recover_calibration.py leader /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B8E116010-if00
 ```
 
 Replace the port name with **your own** leader arm's name.
@@ -40,15 +40,15 @@ On our leader arm it printed:
 
 ```
 Calibration stored in the servos:
-  shoulder_pan   id 1  homing_offset  -1910  range   784 to  3417
-  shoulder_lift  id 2  homing_offset  -1557  range   961 to  3303
-  elbow_flex     id 3  homing_offset   1831  range   775 to  2979
-  wrist_flex     id 4  homing_offset   2008  range   866 to  3118
-  wrist_roll     id 5  homing_offset   1838  range     0 to  4095
-  gripper        id 6  homing_offset    941  range  1901 to  3119
+  shoulder_pan       id 1  homing_offset  -1910  range   784 to  3417
+  shoulder_lift      id 2  homing_offset  -1557  range   961 to  3303
+  elbow_flex         id 3  homing_offset   1831  range   775 to  2979
+  wrist_flex         id 4  homing_offset   2008  range   866 to  3118
+  wrist_roll         id 5  homing_offset   1838  range     0 to  4095
+  gripper            id 6  homing_offset    941  range  1901 to  3119
 Saved to /home/team0/.cache/huggingface/lerobot/calibration/teleoperators/so_leader/leader.json
 File matches the servos: True
-Leader pose now: {'shoulder_pan': 22.7, 'shoulder_lift': -101.9, 'elbow_flex': 97.8, 'wrist_flex': -98.7, 'wrist_roll': -17.3, 'gripper': 0.3}
+Pose now: {'shoulder_pan': 22.7, 'shoulder_lift': -101.9, 'elbow_flex': 97.8, 'wrist_flex': -98.7, 'wrist_roll': -17.3, 'gripper': 0.3}
 ```
 
 Your numbers will be different. Every arm has its own.
@@ -87,10 +87,10 @@ This line must say `True`.
 ~/.cache/huggingface/lerobot/calibration/teleoperators/so_leader/leader.json
 ```
 
-The file name, `leader`, is the **calibration name** (LeRobot calls it the `id`). Programs that use the leader arm must be given the same name. To use a different name, pass it as a second argument:
+The file name, `leader`, is the **calibration name** (LeRobot calls it the `id`). Programs that use the leader arm must be given the same name. To use a different name, add it at the end:
 
 ```bash
-python ~/FOR26/Assignment3/HW-Bringup/scripts/recover_calibration.py /dev/serial/by-id/usb-... team3_leader
+python ~/FOR26/Assignment3/HW-Bringup/scripts/recover_calibration.py leader /dev/serial/by-id/usb-... team3_leader
 ```
 
 **Back up this file.** It lives outside the course folder, and nothing else saves it.
@@ -157,7 +157,7 @@ The file is saved as `~/.cache/huggingface/lerobot/calibration/robots/lekiwi/lek
 
 ### Check a fresh calibration
 
-Run the recovery program from the top of this page on the leader arm again. It now simply reads back what you just calibrated. Go through the three checks under [Check the result](#check-the-result).
+Run the recovery program from the top of this page again (with `leader` or `lekiwi` as its first argument). It now simply reads back what you just calibrated. Go through the three checks under [Check the result](#check-the-result).
 
 A range close to `0 to 4095` on any joint other than `wrist_roll` means the middle pose in step 1 was too close to an end stop. Calibrate that arm again.
 
@@ -172,4 +172,4 @@ A range close to `0 to 4095` on any joint other than `wrist_roll` means the midd
 
 ---
 
-Previous: [2. Check the servos](02_check_servos.md) | Back to the [overview](README.md)
+Previous: [2. Check the servos](02_check_servos.md) | Next: [4. The real robot in ROS](04_robot_node.md)

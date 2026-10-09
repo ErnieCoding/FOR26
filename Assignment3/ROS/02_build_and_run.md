@@ -39,7 +39,8 @@ ros_ws/
     │   └── lekiwi_ros/       the Python files
     │       ├── sim_node.py
     │       └── leader_node.py
-    └── hello_ros/            package: your nodes (page 3)
+    ├── hello_ros/            package: your first nodes (page 3)
+    └── arm_control/          package: your kinematics nodes (Kinematics guide)
 ```
 
 A **package** is a folder of related code that ROS can find by name. Building the workspace creates three more folders next to `src`: `build`, `install` and `log`. You never edit those.
@@ -67,8 +68,10 @@ Starting >>> hello_ros
 Starting >>> lekiwi_ros
 Finished <<< hello_ros [1.60s]
 Finished <<< lekiwi_ros [1.60s]
+Starting >>> arm_control
+Finished <<< arm_control [1.30s]
 
-Summary: 2 packages finished [1.74s]
+Summary: 3 packages finished [3.04s]
 ```
 
 > Always run `colcon build` **inside `~/FOR26/ros_ws`**. If you run it in another folder, it creates `build`, `install` and `log` there.
@@ -89,6 +92,7 @@ ros2 pkg executables lekiwi_ros
 
 ```
 lekiwi_ros leader_node
+lekiwi_ros robot_node
 lekiwi_ros sim_node
 ```
 
@@ -150,11 +154,14 @@ ros2 topic list
 /base_commands
 /base_pose
 /camera/image
+/fk_pose
+/key_pressed
 /parameter_events
 /rosout
+/true_fingertip
 ```
 
-The first five belong to `sim_node`. The last two exist in every ROS system.
+All but `/parameter_events` and `/rosout` belong to `sim_node`. Those two exist in every ROS system. `/fk_pose`, `/key_pressed` and `/true_fingertip` are used later, in the Kinematics guide.
 
 **What does the node publish and subscribe to?**
 
@@ -278,7 +285,7 @@ ROS checked that the **type** was right, but it cannot know that this topic need
 
 ## Step 9: Read the node
 
-Open `~/FOR26/ros_ws/src/lekiwi_ros/lekiwi_ros/sim_node.py` in VS Code. It is about 100 lines. Find:
+Open `~/FOR26/ros_ws/src/lekiwi_ros/lekiwi_ros/sim_node.py` in VS Code. It is about 140 lines. Find:
 
 | Look for | What it does |
 | --- | --- |

@@ -65,8 +65,14 @@ LEFT_IN_BASE = np.array([-1.0, 0.0, 0.0])
 WHEEL_RADIUS = 0.0628
 # The real wheel servos top out at 3000 encoder steps per second (4096 steps per turn).
 MAX_WHEEL_SPEED = 3000.0 * 2.0 * math.pi / 4096.0  # rad/s
+# Wheel motors of the simulated robot (see _build_model).
+WHEEL_STIFFNESS = 30.0   # N m per radian between the wheel's target angle and its actual angle
+WHEEL_DAMPING = 3.0      # N m per rad/s, the value the reference model uses
 # Where the "gripper" marker sits in the fixed jaw's own frame (metres): between the fingertips.
 GRIPPER_SITE_POS = [0.008, 0.0, 0.090]
+# The tip of the fixed finger, in the fixed jaw's own frame. This is the arm's "end effector":
+# the point that forward and inverse kinematics are about, and the point that presses keys.
+FINGERTIP_SITE_POS = [-0.013, 0.0, 0.105]
 # Gripper motor of the simulated robot (see _build_model for why it differs from the reference model).
 GRIPPER_STIFFNESS = 20.0   # N m per radian of error between target and actual jaw angle
 GRIPPER_MAX_TORQUE = 0.5   # N m, about 8 N of squeeze at the fingertips
@@ -94,6 +100,15 @@ PLATFORMS = {
     "shelf_left": (0.10, 0.34, 0.20, 0.16, 0.08, (0.55, 0.60, 0.70, 1.0)),
     "shelf_right": (0.10, -0.34, 0.20, 0.16, 0.12, (0.55, 0.60, 0.70, 1.0)),
 }
+
+# The keyboard scene: a plate with three keys that can be pressed down.
+# name: (x, y) of the key's centre. "a" is on the robot's left, "d" on its right.
+KEYS = {"key_a": (0.30, 0.07), "key_s": (0.30, 0.0), "key_d": (0.30, -0.07)}
+KEYBOARD_HEIGHT = 0.02    # top of the plate above the floor (m)
+KEY_SIZE = 0.024          # width of a key cap (m)
+KEY_HEIGHT = 0.012        # height of a key cap (m)
+KEY_TRAVEL = 0.006        # how far a key can be pushed down (m)
+KEY_PRESSED_AT = 0.003    # a key counts as pressed when it is this far down (m)
 
 # Collision bits. The reference model switches collisions off for almost every robot part and
 # uses bit 1 for wheels/floor and bit 2 for a few spheres that keep the arm above the floor.
@@ -140,17 +155,24 @@ class LeKiwiSim:
     Args:
         control_dt: seconds of simulated time that one call to step() advances.
         model_path: MJCF file of the robot. Defaults to the model in models/LeKiwi-sim.
-        add_scene: set to False to load the robot alone, without cubes and platforms.
+        scene: what to put around the robot. "cubes" (a table with three cubes and two shelves),
+            "keyboard" (a plate with three keys to press) or "empty" (only the floor).
+        add_scene: older way to ask for an empty scene; add_scene=False is the same as scene="empty".
     """
 
-    def __init__(self, control_dt=0.02, model_path=None, add_scene=True):
+    def __init__(self, control_dt=0.02, model_path=None, add_scene=True, scene="cubes"):
+        if not add_scene:
+            scene = "empty"
+        if scene not in ("cubes", "keyboard", "empty"):
+            raise ValueError(f'scene must be "cubes", "keyboard" or "empty", got {scene!r}')
+        self.scene = scene
         model_path = Path(model_path) if model_path else DEFAULT_MODEL
         if not model_path.exists():
             raise FileNotFoundError(
                 f"Robot model not found at {model_path}. "
                 "In the repository folder run: git submodule update --init"
             )
-        self.model = self._build_model(model_path, add_scene)
+        self.model = self._build_model(model_path, scene)
         self.data = mujoco.MjData(self.model)
         self.control_dt = control_dt
         self._substeps = max(1, round(control_dt / self.model.opt.timestep))
@@ -159,6 +181,10 @@ class LeKiwiSim:
         name2id = mujoco.mj_name2id
         self._base_body = name2id(m, mujoco.mjtObj.mjOBJ_BODY, MODEL_BASE_BODY)
         self._gripper_site = name2id(m, mujoco.mjtObj.mjOBJ_SITE, "gripper")
+        self._fingertip_site = name2id(m, mujoco.mjtObj.mjOBJ_SITE, "fingertip")
+        self._key_qpos = {n: m.jnt_qposadr[name2id(m, mujoco.mjtObj.mjOBJ_JOINT, n + "_slide")]
+                          for n in KEYS if name2id(m, mujoco.mjtObj.mjOBJ_JOINT, n + "_slide") >= 0}
+        self._markers = {}
         arm_joint_ids = [name2id(m, mujoco.mjtObj.mjOBJ_JOINT, n) for n in MODEL_ARM_JOINTS]
         self._arm_qpos = np.array([m.jnt_qposadr[j] for j in arm_joint_ids])
         self._arm_qvel = np.array([m.jnt_dofadr[j] for j in arm_joint_ids])
@@ -183,7 +209,7 @@ class LeKiwiSim:
     # -----------------------------------------------------------------------------------------
 
     @staticmethod
-    def _build_model(model_path, add_scene):
+    def _build_model(model_path, scene):
         """Load the robot MJCF and add our own parts to it in memory (the file is not changed)."""
         spec = mujoco.MjSpec.from_file(str(model_path))
         box = mujoco.mjtGeom.mjGEOM_BOX
@@ -206,6 +232,8 @@ class LeKiwiSim:
         # Mark the point between the fingertips, and give the gripper a realistic closing force.
         spec.body(MODEL_FIXED_JAW_BODY).add_site(name="gripper", pos=GRIPPER_SITE_POS, size=[0.004, 0.004, 0.004],
                                                  rgba=[1.0, 0.9, 0.0, 1.0])
+        spec.body(MODEL_FIXED_JAW_BODY).add_site(name="fingertip", pos=FINGERTIP_SITE_POS, size=[0.003, 0.003, 0.003],
+                                                 rgba=[1.0, 0.2, 0.8, 1.0])
         # In the reference model the gripper motor can push with 80 N m and its joint is given a
         # very large inertia. That is strong enough to drive the fingers straight through a small
         # cube. We replace it with a weaker, lighter motor that closes in about a second and then
@@ -220,10 +248,39 @@ class LeKiwiSim:
         jaw.gainprm, jaw.biasprm = gain, bias
         jaw.forcerange = [-GRIPPER_MAX_TORQUE, GRIPPER_MAX_TORQUE]
 
+        # Wheel motors. In the reference model they only resist speed, so a steady push (such as the
+        # arm leaning forward) makes the stopped robot creep. A real servo holds its position. We
+        # turn each wheel motor into one that integrates the commanded speed into a target angle
+        # and holds that angle, which is MuJoCo's "intvelocity" actuator.
+        for name in MODEL_WHEEL_ACTUATORS:
+            wheel = spec.actuator(name)
+            gain, bias = np.zeros(len(wheel.gainprm)), np.zeros(len(wheel.biasprm))
+            gain[0], bias[1], bias[2] = WHEEL_STIFFNESS, -WHEEL_STIFFNESS, -WHEEL_DAMPING
+            wheel.gainprm, wheel.biasprm = gain, bias
+            wheel.dyntype = mujoco.mjtDyn.mjDYN_INTEGRATOR
+            wheel.gaintype = mujoco.mjtGain.mjGAIN_FIXED
+            wheel.biastype = mujoco.mjtBias.mjBIAS_AFFINE
+
         # The reference model ships with one block on the floor. We turn it into one of our cubes.
         block = spec.body("target_block")
         world = spec.worldbody
-        if add_scene:
+        if scene == "keyboard":
+            block.pos = [0.0, 3.5, 0.025]  # park the built-in block far away from the robot
+            xs, ys = [x for x, _ in KEYS.values()], [y for _, y in KEYS.values()]
+            world.add_geom(name="keyboard", type=box, rgba=[0.25, 0.25, 0.28, 1.0],
+                           pos=[sum(xs) / len(xs), sum(ys) / len(ys), KEYBOARD_HEIGHT / 2],
+                           size=[0.05, (max(ys) - min(ys)) / 2 + 0.04, KEYBOARD_HEIGHT / 2],
+                           contype=BIT_WORLD, conaffinity=BIT_WORLD | BIT_ARM_PROXY | BIT_JAW)
+            colours = ([0.85, 0.15, 0.15, 1.0], [0.15, 0.65, 0.20, 1.0], [0.15, 0.35, 0.90, 1.0])
+            for (name, (x, y)), rgba in zip(KEYS.items(), colours):
+                # A key is a small box on a vertical sliding joint with a spring that pushes it back up.
+                key = world.add_body(name=name, pos=[x, y, KEYBOARD_HEIGHT + KEY_TRAVEL + KEY_HEIGHT / 2])
+                key.add_joint(name=name + "_slide", type=mujoco.mjtJoint.mjJNT_SLIDE, axis=[0, 0, 1],
+                              range=[-KEY_TRAVEL, 0.0], stiffness=60.0, damping=[0.5, 0.0, 0.0])
+                key.add_geom(name=name + "_geom", type=box, rgba=rgba, mass=0.005,
+                             size=[KEY_SIZE / 2, KEY_SIZE / 2, KEY_HEIGHT / 2],
+                             contype=0, conaffinity=BIT_JAW, solref=GRASP_SOLREF, solimp=GRASP_SOLIMP)
+        elif scene == "cubes":
             touches = BIT_WORLD | BIT_ARM_PROXY | BIT_JAW
             for name, (x, y, sx, sy, height, rgba) in PLATFORMS.items():
                 world.add_geom(name=name, type=box, pos=[x, y, height / 2], size=[sx / 2, sy / 2, height / 2],
@@ -377,6 +434,7 @@ class LeKiwiSim:
             for _ in range(self._substeps):
                 mujoco.mj_step(self.model, self.data)
             if self._viewer is not None:
+                self._draw_markers(self._viewer.user_scn, 0)
                 self._viewer.sync()
             if realtime:
                 if self._wall_start is None:
@@ -396,6 +454,9 @@ class LeKiwiSim:
             base_velocity   [forward (m/s), left (m/s), counter-clockwise (deg/s)] in the robot's frame
             wheel_velocity  3 wheel speeds (rad/s)
             gripper_position  [x, y, z] (m) of the point between the fingertips, in the world frame
+            fingertip_position  [x, y, z] (m) of the tip of the fixed finger, in the world frame
+            fingertip_in_base   the same point, in the robot's base frame (x forward, y left, z up)
+            keys            {name: {"position": [x, y, z] of the key's top, "pressed": True/False}}
             objects         {name: {"position": [x, y, z], "quaternion": [w, x, y, z]}}
         """
         d = self.data
@@ -415,9 +476,55 @@ class LeKiwiSim:
                                        math.degrees(velocity[2])]),
             "wheel_velocity": d.qvel[self._wheel_qvel].copy(),
             "gripper_position": d.site_xpos[self._gripper_site].copy(),
+            "fingertip_position": d.site_xpos[self._fingertip_site].copy(),
+            "fingertip_in_base": self.world_to_base(d.site_xpos[self._fingertip_site]),
+            "keys": {name: {"position": self._key_top(name), "pressed": bool(-d.qpos[adr] > KEY_PRESSED_AT)}
+                     for name, adr in self._key_qpos.items()},
             "objects": {name: {"position": d.xpos[body].copy(), "quaternion": d.xquat[body].copy()}
                         for name, body in self._object_bodies.items()},
         }
+
+    def _base_frame(self):
+        """Rotation and origin of the base frame (x forward, y left, z up) in the world frame."""
+        rot = self.data.xmat[self._base_body].reshape(3, 3)
+        axes = np.column_stack([rot @ FORWARD_IN_BASE, rot @ LEFT_IN_BASE, rot[:, 2]])
+        return axes, self.data.xpos[self._base_body]
+
+    def base_to_world(self, point):
+        """Convert a point from the robot's base frame to the world frame."""
+        axes, origin = self._base_frame()
+        return axes @ np.asarray(point, float) + origin
+
+    def world_to_base(self, point):
+        """Convert a point from the world frame to the robot's base frame."""
+        axes, origin = self._base_frame()
+        return axes.T @ (np.asarray(point, float) - origin)
+
+    def _key_top(self, name):
+        """World position of the centre of a key's top surface."""
+        body = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)
+        return self.data.xpos[body] + [0.0, 0.0, KEY_HEIGHT / 2]
+
+    def set_marker(self, name, position, color=(1.0, 0.0, 1.0, 1.0), radius=0.008):
+        """Show a small sphere at `position` (world frame) in the viewer and in camera images.
+
+        A marker is only a drawing: it has no mass and touches nothing. Call again with the same
+        name to move it. Pass position=None to remove it.
+        """
+        if position is None:
+            self._markers.pop(name, None)
+        else:
+            self._markers[name] = (np.asarray(position, float).copy(), tuple(color), float(radius))
+
+    def _draw_markers(self, scene, first):
+        """Add the markers to a MuJoCo scene, starting at geom slot `first`."""
+        scene.ngeom = first
+        for position, color, radius in self._markers.values():
+            if scene.ngeom >= scene.maxgeom:
+                break
+            mujoco.mjv_initGeom(scene.geoms[scene.ngeom], mujoco.mjtGeom.mjGEOM_SPHERE, np.array([radius, 0.0, 0.0]),
+                                position, np.eye(3).flatten(), np.array(color, dtype=np.float32))
+            scene.ngeom += 1
 
     def get_image(self, camera="overview", width=320, height=240):
         """Return what a camera sees as a (height, width, 3) array of 8-bit RGB values.
@@ -436,6 +543,7 @@ class LeKiwiSim:
                 atexit.register(self.close)
         renderer = self._renderers[(width, height)]
         renderer.update_scene(self.data, camera=camera)
+        self._draw_markers(renderer.scene, renderer.scene.ngeom)
         return renderer.render()
 
     def open_viewer(self):

@@ -15,7 +15,7 @@ Course material for working with the **LeKiwi** mobile manipulator: a three-whee
 | `Assignment3/` | step-by-step guides for Assignment 03 |
 | `lekiwi_sim/` | the robot simulator, a plain Python package |
 | `models/LeKiwi-sim/` | the robot's MuJoCo model (a git submodule) |
-| `ros_ws/` | the ROS 2 workspace: `lekiwi_ros` (provided nodes) and `hello_ros` (your first nodes) |
+| `ros_ws/` | the ROS 2 workspace: `lekiwi_ros` (provided nodes), `hello_ros` (your first nodes) and `arm_control` (your kinematics and typing nodes) |
 
 ## Getting the code
 

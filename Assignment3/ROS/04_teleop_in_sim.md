@@ -138,7 +138,7 @@ When `leader_node` stops, the simulated arm stays in its last pose, because an a
 
 Three nodes, two topics, and three different programs written by three different people (LeRobot's arm driver, the course's simulator, and your follower) working together without knowing each other.
 
-The next step, driving the **real** robot, changes only one box: a node for the real LeKiwi takes the place of `sim_node` and listens to the same `/arm_commands` topic.
+Driving the **real** robot changes only one box: `robot_node` takes the place of `sim_node` and listens to the same `/arm_commands` topic. See [Hardware bring-up, page 4](../HW-Bringup/04_robot_node.md).
 
 ## Read the node
 
@@ -170,4 +170,4 @@ action = self.leader.get_action()
 
 ---
 
-Previous: [3. Your first nodes](03_your_first_nodes.md) | Back to the [overview](README.md)
+Previous: [3. Your first nodes](03_your_first_nodes.md) | Next: [5. Launch files](05_launch_files.md)

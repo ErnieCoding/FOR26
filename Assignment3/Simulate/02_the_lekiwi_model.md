@@ -121,6 +121,7 @@ A simulation is a model of reality, not reality. Know the differences:
 - **Most parts of the robot cannot collide.** The original model switches collisions off for nearly every part, because the detailed CAD shapes overlap each other. Only the wheels, a few spheres along the arm, and the gripper fingers can touch things. The arm can therefore pass through the robot's own base.
 - **The gripper fingers are our addition.** The original model had no collision shapes on the gripper at all, so it could not hold anything. `LeKiwiSim` adds an invisible contact pad on each finger and a weaker gripper motor. See `_build_model` in `~/FOR26/lekiwi_sim/simulator.py`.
 - **Turning on the spot is slightly slow.** A command of 30 deg/s gives about 26 deg/s, because the wheels slip a little.
+- **The wheel motors are our change too.** In the original model a stopped robot slowly creeps when the arm leans out. `LeKiwiSim` makes the wheel motors hold their position when stopped, as real servos do.
 
 ## Try it yourself
 

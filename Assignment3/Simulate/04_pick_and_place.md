@@ -18,16 +18,16 @@ You should see:
 red cube starts at [0.3   0.06  0.055]
 above the cube         cube at [0.3   0.06  0.055]
 down to the cube       cube at [0.3   0.06  0.055]
-close the gripper      cube at [0.3   0.06  0.055]
-lift                   cube at [0.334 0.063 0.137]
-over the shelf         cube at [0.11  0.312 0.203]
-lower onto the shelf   cube at [0.105 0.306 0.12 ]
-open the gripper       cube at [0.105 0.311 0.095]
-move away              cube at [0.105 0.311 0.095]
+close the gripper      cube at [0.299 0.052 0.055]
+lift                   cube at [0.332 0.055 0.137]
+over the shelf         cube at [0.134 0.293 0.191]
+lower onto the shelf   cube at [0.133 0.284 0.115]
+open the gripper       cube at [0.133 0.289 0.095]
+move away              cube at [0.133 0.289 0.095]
 The cube is on the shelf.
 ```
 
-Follow the cube's height, the third number. It starts at 0.055 m on the table, is lifted to 0.137 m, carried over the shelf at 0.203 m, lowered, and comes to rest at 0.095 m. That is the shelf top (0.08 m) plus half a cube (0.015 m).
+Follow the cube's height, the third number. It starts at 0.055 m on the table, is lifted to 0.137 m, carried over the shelf at 0.191 m, lowered, and comes to rest at 0.095 m. That is the shelf top (0.08 m) plus half a cube (0.015 m).
 
 With the 3-D window, at the lab computer:
 

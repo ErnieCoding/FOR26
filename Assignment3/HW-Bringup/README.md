@@ -9,6 +9,7 @@ Do the [Setup guide](../Setup/README.md) first. Then follow these pages **in ord
 | 1 | [Wiring the robot](01_wiring.md) | Power, USB and servo cables connected; the computer sees both controller boards |
 | 2 | [Check the servos](02_check_servos.md) | Permission to use the boards; every servo answers; you know which board is LeKiwi and which is the leader arm |
 | 3 | [Calibration](03_calibration.md) | A calibration file for the leader arm, recovered from its servos or measured again; calibration of LeKiwi's arm |
+| 4 | [The real robot in ROS](04_robot_node.md) | `robot_node`: reading the real arm from ROS, and (with care) driving it |
 
 ## Safety rules for all pages
 
@@ -33,4 +34,4 @@ Do the [Setup guide](../Setup/README.md) first. Then follow these pages **in ord
 | [`images/lekiwi_wiring_diagram.png`](images/lekiwi_wiring_diagram.png) | The wiring diagram used on page 1 |
 | [`scripts/check_servos.py`](scripts/check_servos.py) | The read-only servo check used on page 2 |
 | [`config/lekiwi_nocam.yaml`](config/lekiwi_nocam.yaml) | LeKiwi settings without cameras, used on page 3 |
-| [`scripts/recover_calibration.py`](scripts/recover_calibration.py) | Rebuilds the leader arm's calibration file from its servos, used on page 3 |
+| [`scripts/recover_calibration.py`](scripts/recover_calibration.py) | Rebuilds a calibration file (leader arm or LeKiwi) from the servos, used on pages 3 and 4 |

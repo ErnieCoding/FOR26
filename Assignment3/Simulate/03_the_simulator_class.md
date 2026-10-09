@@ -33,13 +33,15 @@ The world frame has x pointing forward from the robot's start pose, y to its lef
 
 | Call | What it does |
 | --- | --- |
-| `LeKiwiSim()` | Builds the simulator. `LeKiwiSim(add_scene=False)` gives the robot alone on an empty floor. |
+| `LeKiwiSim()` | Builds the simulator with the cube scene. `LeKiwiSim(scene="keyboard")` gives a keyboard with three keys instead, and `LeKiwiSim(scene="empty")` the robot alone on an empty floor. |
 | `sim.set_command(arm=..., base=...)` | Sets the targets. Leave one out to keep its old value. |
 | `sim.get_command()` | Returns the current targets. |
 | `sim.step(n=1, realtime=False)` | Advances `n` control periods of 0.02 s each. |
 | `sim.get_state()` | Returns a dictionary describing the robot and the cubes. |
 | `sim.get_image(camera, width, height)` | Returns a camera picture as a NumPy array. |
 | `sim.reset()` | Puts everything back to the start. |
+| `sim.set_marker(name, position)` | Draws a small ball at a position in the world. It is only a drawing and touches nothing. |
+| `sim.base_to_world(point)`, `sim.world_to_base(point)` | Convert a point between the robot's base frame and the world frame. |
 | `sim.open_viewer()` | Opens the interactive 3-D window. |
 | `sim.viewer_is_open()` | `True` until you close that window. |
 | `sim.close()` | Closes the window and frees the cameras. |
@@ -69,6 +71,9 @@ Two different kinds of command:
 | `base_velocity` | `[forward, left, turn]`: m/s, m/s, deg/s, measured in the robot's own frame |
 | `wheel_velocity` | 3 wheel speeds in rad/s |
 | `gripper_position` | `[x, y, z]` of the point between the fingertips, in the world frame |
+| `fingertip_position` | `[x, y, z]` of the tip of the fixed finger, in the world frame |
+| `fingertip_in_base` | the same point in the robot's base frame (x forward, y left, z up, origin at the centre of the bottom base plate) |
+| `keys` | in the keyboard scene, for each key: `{"position": [x, y, z] of its top, "pressed": True or False}` |
 | `objects` | for each cube: `{"position": [x, y, z], "quaternion": [w, x, y, z]}` |
 
 ## First run
@@ -89,17 +94,17 @@ gripper point at start: [0.393 0.005 0.362]
 objects: {'red_cube': array([0.3  , 0.06 , 0.055]), 'green_cube': array([ 0.3  , -0.06 ,  0.055]), 'blue_cube': array([0.36 , 0.   , 0.055])}
 
 after 2.0 s of driving backwards at 0.1 m/s:
-arm: [ 19.998 -29.317  41.062  30.195   0.005  99.988]
-base pose [x, y, heading]: [-0.199 -0.002  0.38 ]
-base velocity [forward, left, turn]: [-0.097 -0.001  0.287]
+arm: [ 19.997 -29.348  41.028  30.192   0.005  99.989]
+base pose [x, y, heading]: [-0.194 -0.     0.043]
+base velocity [forward, left, turn]: [-0.097 -0.     0.04 ]
 
-after the stop command, base velocity: [ 0.    -0.001  0.128]
+after the stop command, base velocity: [-0.  0. -0.]
 ```
 
 Things to notice:
 
 - The program commanded the arm to `[20, -30, 40, 30, 0, 100]` and it arrived at about `[20.0, -29.3, 41.1, 30.2, 0.0, 100.0]`. The small differences are real physics: the arm sags a little under its own weight, like a real servo arm.
-- Driving backwards at 0.1 m/s for 2 s moved the base to x = -0.199 m.
+- Driving backwards at 0.1 m/s for 2 s moved the base to x = -0.194 m. It is a little less than 0.2 m because the robot needs a moment to get up to speed.
 - Each cube's centre is at z = 0.055 m: the table top (0.04) plus half a cube (0.015).
 
 Open [`scripts/03_hello_sim.py`](scripts/03_hello_sim.py) and read it. It is 30 lines.
@@ -131,7 +136,7 @@ while sim.viewer_is_open():
     sim.step(realtime=True)
 ```
 
-`realtime=True` makes `step()` wait, so that one simulated second takes one real second. Without it the simulation runs as fast as the computer allows (about 20 times faster than real time on the lab computer), which is what you want when no one is watching.
+`realtime=True` makes `step()` wait, so that one simulated second takes one real second. Without it the simulation runs as fast as the computer allows (20 to 30 times faster than real time on the lab computer), which is what you want when no one is watching.
 
 ## Take pictures
 
@@ -172,13 +177,13 @@ An image is a NumPy array of shape `(height, width, 3)`: for every pixel, three 
 - **The simulation only advances when you call `step()`.** `set_command` alone does nothing visible.
 - **The base does not stop by itself.** The real robot stops its wheels when commands stop arriving. The simulator keeps the last base command forever, so always send a stop command.
 - **The robot leans when the arm reaches out.** It is light, and the arm is heavy for its size. With the arm stretched far forward, the base tilts by a degree or two.
-- **Reaching moves the base a little.** When the arm stretches forward, the base shifts by a centimetre or two. A real robot does the same. Do not assume the base stays exactly where it was.
+- **Reaching tilts the base a little.** When the arm stretches forward, the robot leans, and the fingertip ends up a few millimetres lower and closer than a rigid robot's would.
 
 ## Try it yourself
 
 Write each of these as a new file in `~/FOR26/Assignment3/Simulate/scripts`.
 
-1. **Square.** Drive the base along a square with 0.3 m sides and print `base_pose` at each corner. Use `LeKiwiSim(add_scene=False)` so nothing is in the way. How far from the start do you end up?
+1. **Square.** Drive the base along a square with 0.3 m sides and print `base_pose` at each corner. Use `LeKiwiSim(scene="empty")` so nothing is in the way. How far from the start do you end up?
 2. **Slow close.** Close the gripper from 100 % to 0 % over 3 seconds and print the gripper value every 0.5 s.
 3. **Follow the cube.** Using `get_state()`, turn the base until the robot faces the red cube. (Hint: `math.atan2`.)
 4. **Find the cube in the picture.** Take a `top` image and find the pixel coordinates of the red cube, using only NumPy.

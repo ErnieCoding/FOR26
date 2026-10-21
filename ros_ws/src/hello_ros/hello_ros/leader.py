@@ -25,10 +25,10 @@ class Leader(Node):
         # TODO 1: create a publisher for messages of type Float64MultiArray on the topic
         #         "arm_commands", and keep it in self.publisher.
         #         Hint: self.create_publisher(message type, topic name, 10)
-
+        self.publisher = self.create_publisher(Float64MultiArray, "arm_commands", 10)
         # TODO 2: create a timer that calls self.on_timer RATE_HZ times per second.
         #         Hint: self.create_timer(seconds between calls, function to call)
-
+        self.create_timer(3, self.on_timer())
         self.get_logger().info("Leader started.")
 
     def on_timer(self):
@@ -38,7 +38,10 @@ class Leader(Node):
         # TODO 3: create a Float64MultiArray message, fill its .data with six numbers
         #         [shoulder_pan, 0, 0, 0, 0, 50] (the last one is the gripper, in percent),
         #         and publish it with self.publisher.
+        msg = Float64MultiArray()
+        msg.data = [shoulder_pan, 0.0, 0.0, 0.0, 0.0, 50.0]
 
+        self.publisher.publish(msg)
 
 def main():
     rclpy.init()

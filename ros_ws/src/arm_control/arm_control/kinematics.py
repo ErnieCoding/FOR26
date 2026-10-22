@@ -30,6 +30,26 @@ def forward_kinematics(angles_deg):
     direction = HOME_FINGER_DIRECTION.copy()
     # TODO (forward kinematics): apply the five joint rotations to `position` and `direction`.
     # Use rotate(), JOINT_POINTS and JOINT_AXES. See Assignment3/Kinematics/01_forward_kinematics.md.
+
+    # ===== OUR CODE (forward kinematics) START =====
+    # Idea: start from the fingertip at the zero pose and turn it around each joint,
+    # from the LAST joint (wrist_roll) to the FIRST (shoulder_pan). Going backwards means
+    # every joint axis we use is still exactly where the table in arm_model.py says it is.
+    for i in reversed(range(5)):     # i = 4, 3, 2, 1, 0  -> wrist_roll, wrist_flex, elbow_flex, shoulder_lift, shoulder_pan
+        q = JOINT_POINTS[i]          # q: a point on joint i's rotation axis (where the joint is), in metres
+        a = JOINT_AXES[i]            # a: unit vector, the direction joint i spins around
+
+        # Rotate the fingertip POSITION about the axis through q, in three moves:
+        #   (position - q)  -> shift so the joint sits at the origin (rotate() only spins about the origin)
+        #   rotate(..., a, angle) -> spin by joint i's angle (radians, right-hand rule)
+        #   q + ...         -> shift back so the joint is in its real place again
+        position = q + rotate(position - q, a, angles[i])
+
+        # Rotate the finger DIRECTION too. A direction is not a place, so it is only
+        # turned, never shifted (no "- q" and "+ q").
+        direction = rotate(direction, a, angles[i])
+    # ===== OUR CODE END =====
+    # After the loop: position = where the fingertip is, direction = which way the finger points.
     return position, direction
 
 

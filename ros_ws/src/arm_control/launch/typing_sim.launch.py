@@ -23,4 +23,6 @@ def generate_launch_description():
                           "viewer": ParameterValue(LaunchConfiguration("viewer"), value_type=bool)}]),
         # TODO: add one Node(...) entry for each of your three nodes: forward_kinematics,
         # inverse_kinematics and keyboard_typer, all from the package "arm_control".
+
+        Node(package="arm_control", executable="forward_kinematics", output="screen"),
     ])

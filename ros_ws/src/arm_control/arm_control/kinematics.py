@@ -5,6 +5,7 @@ All joint angles are in degrees, in the order of lekiwi_sim.arm_model.JOINT_NAME
 The end effector is the tip of the gripper's fixed finger.
 """
 import numpy as np
+import scipy
 
 from lekiwi_sim.arm_model import (HOME_FINGER_DIRECTION, HOME_FINGERTIP, JOINT_AXES, JOINT_LIMITS_DEG,
                                   JOINT_POINTS)
@@ -53,8 +54,8 @@ def forward_kinematics(angles_deg):
     return position, direction
 
 
-def inverse_kinematics(target_position, target_direction, start_angles_deg, iterations=200,
-                       direction_weight=0.05, damping=0.01):
+def inverse_kinematics(target_position, target_direction, start_angles_deg, *, iterations=500,
+                       direction_weight=0.05):
     """Find joint angles that put the fingertip at `target_position`, pointing along `target_direction`.
 
     Solved numerically with damped least squares, starting from `start_angles_deg`. Only the first
@@ -70,5 +71,22 @@ def inverse_kinematics(target_position, target_direction, start_angles_deg, iter
     angles = np.asarray(start_angles_deg, float)[:5].copy()
     # TODO (inverse kinematics): change angles[:4] step by step until forward_kinematics(angles)
     # matches the target position and direction. See Assignment3/Kinematics/02_inverse_kinematics.md.
+    ### Our code START
+    ### NOTE: We are using assignment 2's inverse kinematics strategy, not this repo's given one
+    def error_fn(angles):
+        end_effector_position, end_effector_direction = forward_kinematics(angles)
+        position_error = float(np.linalg.norm(target_position - end_effector_position))
+        direction_error = float(np.linalg.norm(target_direction - end_effector_direction)) * direction_weight
+        error = position_error + direction_error
+        return error
+    result = scipy.optimize.minimize(
+        error_fn,
+        angles,
+        bounds=JOINT_LIMITS_DEG,
+        options={"maxiter": iterations},
+    )
+    angles = result.x
+    ### Our code END
+
     position_error = float(np.linalg.norm(target_position - forward_kinematics(angles)[0]))
     return angles, position_error

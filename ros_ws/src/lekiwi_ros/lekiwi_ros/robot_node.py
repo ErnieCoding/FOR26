@@ -5,6 +5,8 @@ Subscribes:
     base_commands  std_msgs/Float64MultiArray, 3 values: forward (m/s), left (m/s), turn (deg/s)
 Publishes:
     arm_state      std_msgs/Float64MultiArray, 6 values, same layout as arm_commands
+    base_velocity  geometry_msgs/TwistStamped: the base's velocity computed from the measured wheel speeds
+
 Parameters:
     port                 serial port of LeKiwi's controller board (required)
     robot_id             the name LeKiwi was calibrated under (default "lekiwi")

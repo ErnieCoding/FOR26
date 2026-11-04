@@ -12,3 +12,5 @@ Assignment3/Simulate/scripts/camera_*.png
 # Complete versions of the student exercises: kept locally by the course staff, not published
 Solutions/
 report/
+*.pdf
+*.gv

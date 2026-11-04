@@ -49,10 +49,21 @@ def marker_pose_from_corners(image_corners, size, camera_matrix, distortion):
         T_camera_marker, a 4x4 matrix: the marker's pose in the camera frame. The camera frame is
         OpenCV's: x to the right of the picture, y down, z forward out of the lens.
     """
-    T = np.eye(4)
     # TODO (Detection, page 2): find the marker's pose in the camera frame from its four corners.
     # Use cv2.solvePnP with marker_corners(size) as the object points and cv2.SOLVEPNP_IPPE_SQUARE, then
     # write the rotation (from the rotation vector) and the translation into T.
+    object_points = marker_corners(size)
+    ok, rvec, tvec = cv2.solvePnP(
+            object_points,
+            image_corners,
+            camera_matrix,
+            distortion,
+            flags=cv2.SOLVEPNP_IPPE_SQUARE,
+    ) 
+    rvec_as_matrix = Rotation.from_rotvec(rvec.ravel()).as_matrix()
+    T = np.eye(4)
+    T[:3, :3] = rvec_as_matrix
+    T[:3, 3] = tvec.T
     return T
 
 

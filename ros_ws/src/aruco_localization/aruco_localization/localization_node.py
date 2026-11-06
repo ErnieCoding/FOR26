@@ -81,8 +81,18 @@ def measurement_from_detection(T_base_camera, T_camera_marker):
         printed side (its z axis) faces, in the base frame (rad)
     """
     distance, bearing, facing = 0.0, 0.0, 0.0
-    # TODO (Localization, page 2): chain T_base_camera and T_camera_marker to get the marker in the base
-    # frame, then compute distance and bearing from its position and facing from its z axis.
+    # OUR CODE START
+    T_base_marker = T_base_camera @ T_camera_marker   # chain robot->camera and camera->marker
+
+    x = T_base_marker[0, 3]          # marker x in robot frame (forward)
+    y = T_base_marker[1, 3]          # marker y in robot frame (left)
+
+    distance = np.hypot(x, y)        # range on the floor
+    bearing = np.arctan2(y, x)       # angle to the marker, left is +
+
+    normal = T_base_marker[:3, 2]    # marker z axis = direction its printed side faces
+    facing = np.arctan2(normal[1], normal[0])   # that direction as a floor angle
+    # OUR CODE END
     return distance, bearing, facing
 
 

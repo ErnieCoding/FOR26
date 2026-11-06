@@ -48,8 +48,34 @@ def motion_update(particles, delta, noise, rng):
         the moved particles, N x 3, with theta wrapped to [-pi, pi)
     """
     particles = particles.copy()
-    # TODO (Localization, page 1): move every particle by delta plus normal noise, as described above.
-    # Each particle gets its own noisy copy of the step, applied in its own frame (use its theta).
+    # OUR CODE START
+    dx = delta[0]                 # forward move
+    dy = delta[1]                 # sideways move
+    dth = delta[2]                # turn
+
+    dist = np.sqrt(dx*dx + dy*dy)                 # how far the robot moved
+    sigma_xy = noise[0] * dist + noise[2]         # position noise
+    sigma_th = noise[1] * abs(dth) + noise[3]     # turn noise
+
+    for i in range(len(particles)):               # go through each particle one by one
+        x = particles[i, 0]                       # this particle's x
+        y = particles[i, 1]                       # this particle's y
+        th = particles[i, 2]                      # this particle's heading
+
+        my_dx = dx + rng.normal(0, sigma_xy)      # this particle's noisy forward move
+        my_dy = dy + rng.normal(0, sigma_xy)      # this particle's noisy sideways move
+        my_dth = dth + rng.normal(0, sigma_th)    # this particle's noisy turn
+
+        x = x + np.cos(th) * my_dx - np.sin(th) * my_dy   # move in the particle's direction (x)
+        y = y + np.sin(th) * my_dx + np.cos(th) * my_dy   # move in the particle's direction (y)
+        th = th + my_dth                                  # turn the particle
+
+        th = (th + np.pi) % (2 * np.pi) - np.pi   # keep the angle between -pi and pi
+
+        particles[i, 0] = x                       # save the new x
+        particles[i, 1] = y                       # save the new y
+        particles[i, 2] = th                      # save the new heading
+    # OUR CODE END
     return particles
 
 
@@ -66,8 +92,18 @@ def expected_measurement(particles, marker):
     """
     n = len(particles)
     expected_range, expected_bearing, expected_facing = np.zeros(n), np.zeros(n), np.zeros(n)
-    # TODO (Localization, page 2): fill expected_range, expected_bearing and expected_facing for every
-    # particle at once (NumPy arrays, no loop over particles).
+    # OUR CODE START
+    x = particles[:, 0]          # x of every particle (whole column at once)
+    y = particles[:, 1]          # y of every particle
+    th = particles[:, 2]         # heading of every particle
+
+    dx = marker[0] - x           # map-x distance from each particle to the marker
+    dy = marker[1] - y           # map-y distance from each particle to the marker
+
+    expected_range = np.hypot(dx, dy)                  # straight-line distance
+    expected_bearing = wrap(np.arctan2(dy, dx) - th)   # direction to marker relative to particle heading
+    expected_facing = wrap(marker[2] - th)             # marker facing seen from the particle
+    # OUR CODE END
     return expected_range, expected_bearing, expected_facing
 
 
@@ -92,9 +128,27 @@ def measurement_log_likelihood(particles, measurements, marker_map, sigmas):
         array of length N: the log-likelihood of each particle (0 for all if no marker is in the map)
     """
     log_likelihood = np.zeros(len(particles))
-    # TODO (Localization, page 2): for each measurement of a marker in the map, subtract the capped,
-    # squared, normalised errors of range, bearing and facing from log_likelihood. Use
-    # expected_measurement() and the sigmas described above.
+    # OUR CODE START
+    for m in measurements:                         # each marker the camera saw
+        marker_id, r, b, f = m                     # id, measured range, bearing, facing
+        if marker_id not in marker_map:            # not in our map? ignore it
+            continue
+
+        marker = marker_map[marker_id]             # where this marker is on the map
+        exp_r, exp_b, exp_f = expected_measurement(particles, marker)  # what each particle expected
+
+        sigma_r = sigmas[0] * r                    # range noise grows with distance
+        sigma_b = sigmas[1]                        # bearing noise is constant
+        sigma_f = sigmas[2] * r                    # facing noise grows with distance
+
+        err_r = abs(r - exp_r) / sigma_r           # range error in sigmas
+        err_b = abs(wrap(b - exp_b)) / sigma_b     # bearing error (wrapped) in sigmas
+        err_f = abs(wrap(f - exp_f)) / sigma_f     # facing error (wrapped) in sigmas
+
+        log_likelihood -= 0.5 * np.minimum(err_r, OUTLIER_CAP) ** 2   # capped range penalty
+        log_likelihood -= 0.5 * np.minimum(err_b, OUTLIER_CAP) ** 2   # capped bearing penalty
+        log_likelihood -= 0.5 * np.minimum(err_f, OUTLIER_CAP) ** 2   # capped facing penalty
+    # OUR CODE END
     return log_likelihood
 
 
@@ -113,8 +167,15 @@ def low_variance_resample(weights, rng):
     """
     n = len(weights)
     indices = np.arange(n)
-    # TODO (Localization, page 3): low-variance resampling as described above. np.cumsum and
-    # np.searchsorted do most of the work.
+    # OUR CODE START
+    r = rng.uniform(0, 1.0 / n)            # one random start between 0 and 1/N
+    positions = r + np.arange(n) / n       # N evenly spaced pointers
+
+    cumulative = np.cumsum(weights)        # running sum of the weights (the "ruler")
+    cumulative[-1] = 1.0                   # make the last value exactly 1
+
+    indices = np.searchsorted(cumulative, positions)   # which particle each pointer lands on
+    # OUR CODE END
     return indices
 
 

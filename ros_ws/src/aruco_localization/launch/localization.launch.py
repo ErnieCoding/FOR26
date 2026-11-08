@@ -22,6 +22,12 @@ Optional arguments (name:=value):
                    where the camera sits on the robot: position in the base frame (m) and how far it
                    is tilted UP (deg). Defaults: the simulated camera's mount (0.125, 0, 0.03, 0).
                    Measure your real robot's camera and pass the values.
+
+Team 12's real robot, measured camera mount (pass these on the real robot; the defaults above are the
+simulator's):
+    camera_x:=0.13 camera_y:=0.0 camera_z:=0.03 camera_pitch:=8
+    ros2 launch aruco_localization localization.launch.py robot:=real port:=/dev/ttyACM0 \\
+        camera_x:=0.13 camera_y:=0.0 camera_z:=0.03 camera_pitch:=8
 """
 import os
 
